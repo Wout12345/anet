@@ -3,7 +3,7 @@ A simple program which forwards commands from stdin and their output and error s
 When the program starts, a magic string is sent to stdout.
 Commands should be followed by a newline.
 When a child process finishes with return code zero, we first print the length of its response in bytes as a 4-byte-integer (responses can never be longer than 4GB since each machine only allocates 2GB memory to SSH users) followed by its response.
-When a child process exits with a non-zero return code, we only return 2**32 - 1 as its length, with no response, to indicate a crash.
+When a child process exits with a non-zero return code, we only return -1 as its length, with no response, to indicate a crash.
 stderr is forwarded without further interference
 """
 
@@ -14,6 +14,7 @@ from subprocess import Popen, PIPE, call
 from select import epoll, EPOLLIN, EPOLLERR, EPOLLHUP
 
 # Set-up
+student_id = "r0597343"
 printing = False
 magic_string = "anet_dispatcher started successfully."
 sys.stdout.write(magic_string)
@@ -28,11 +29,6 @@ while should_run:
 	
 	# Wait for events
 	events = poll_object.poll()
-	
-	"""if printing:
-		sys.stderr.write("Processes: %s\n"%str(processes))
-		sys.stderr.write("Events: %s\n"%str(events))
-		sys.stderr.flush()"""
 	
 	# Handle events
 	for fd, event in events:
@@ -56,7 +52,7 @@ while should_run:
 					# Start new process
 					command_length = struct.unpack("I", unbuffered_stdin.read(4))[0]
 					command = unbuffered_stdin.read(command_length).decode("utf-8")
-					p = Popen("cd /home/r0597343/anet/ ; exec %s"%command, bufsize=0, shell=True, stdout=PIPE) # exec is necessary to not spawn a separate shell, allows us to kill actual process
+					p = Popen("cd /home/%s/anet/ ; exec %s"%(student_id, command), bufsize=0, shell=True, stdout=PIPE) # exec is necessary to not spawn a separate shell, allows us to kill actual process
 					processes[p.stdout.fileno()] = {
 						"process": p,
 						"request_id": request_id

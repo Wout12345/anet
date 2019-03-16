@@ -2,8 +2,6 @@
 
 ANet: a platform to distribute commands over the computers in the KUL department of computer science (building A) through SSH (using public key authentication without passphrases).
 
-Response is returned as a 4-byte little-endian integer describing the request ID, followed by a 4-byte little-endian integer describing the response length in bytes, followed by the response (all binary data).
-
 Made by Wouter Baert, with some ssh/rsync/nc-commands from Maarten Baert.
 
 Usage:
@@ -11,6 +9,8 @@ Usage:
 anet <batch-file> [dependencies]
 batch-file: Path to the text file containing the batch requests. The batch file consists of requests, each represented by one command on one line. The ID of each request is its index (zero-based).
 dependencies: Path containing all dependencies necessary for execution. If this is a folder, should end with /.
+
+Response is returned as a 4-byte little-endian integer describing the request ID, followed by a 4-byte little-endian integer describing the response length in bytes, followed by the response (all binary data).
 
 """
 
@@ -44,6 +44,7 @@ from time import time, sleep
 start = time()
 
 # Constants
+student_id = "r0597343"
 printing = False
 hosts = ("aalst", "aarlen", "alken", "amay", "andenne", "ans", "asse", "aubel", "bastogne", "bergen", "beringen", "beveren", "bilzen", "binche", "borgworm", "brugge", "charleroi", "ciney", "couvin", "damme", "diest", "dilbeek", "dinant", "doornik", "durbuy", "eeklo", "eupen", "fleurus", "geel", "genk", "gent", "gouvy", "haacht", "halle", "ham", "hamme", "hasselt", "hastiere", "heist", "herent", "herstal", "hoei", "ieper", "jemeppe", "kaprijke", "knokke", "komen", "kortrijk", "lanaken", "libin", "lier", "lint", "luik", "maaseik", "malle", "marche", "mechelen", "mol", "namen", "nijvel", "ninove", "ohey", "orval", "overpelt", "peer", "perwez", "pittem", "seraing", "stavelot", "terhulpen", "tienen", "tubize", "turnhout", "verviers", "vielsalm", "vilvoorde", "virton", "voeren", "waterloo", "waver", "zwalm") # 81 machines, 324 cores
 processes_per_host = 4
@@ -61,7 +62,7 @@ def open_connection(host, attempts, connections, poll_object):
 		sys.stderr.write("Opening connection at %s to %s, attempt %s\n"%(time() - start, host, attempts))
 		sys.stderr.flush()
 	
-	p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "r0597343@cs-" + host, "python3 /home/r0597343/anet/src/anet_dispatcher.py"], bufsize=0, stdin=PIPE, stdout=PIPE)
+	p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "%s@cs-"%student_id + host, "python3 /home/%s/anet/src/anet_dispatcher.py"%student_id], bufsize=0, stdin=PIPE, stdout=PIPE)
 	connections[p.stdout.fileno()] = {
 		"process": p,
 		"host": host,
@@ -131,7 +132,7 @@ def find(match_string):
 	
 	for host in hosts:
 		print("Killing all ANet processes on " + host)
-		p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "r0597343@cs-" + host, "for pid in $(ps -ef | grep \"" + match_string + "\" | awk '{print $2}'); do kill -9 $pid; done"])
+		p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "%s@cs-"%student_id + host, "for pid in $(ps -ef | grep \"" + match_string + "\" | awk '{print $2}'); done"])
 		stdout, stderr = p.communicate()
 		if not stderr is None:
 			print("Got stderr!")
@@ -140,7 +141,7 @@ def killall(match_string):
 	
 	for host in hosts:
 		print("Killing all ANet processes on " + host)
-		p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "r0597343@cs-" + host, "for pid in $(ps -ef | grep \"" + match_string + "\" | awk '{print $2}'); do kill -9 $pid; done"])
+		p = Popen(["ssh", "-o", "ProxyCommand ssh -q cs nc " + host + ".cs.kotnet.kuleuven.be 22", "%s@cs-"%student_id + host, "for pid in $(ps -ef | grep \"" + match_string + "\" | awk '{print $2}'); do kill -9 $pid; done"])
 		stdout, stderr = p.communicate()
 		if not stderr is None:
 			print("Got stderr!")
@@ -153,7 +154,7 @@ def main():
 		return
 	
 	if sys.argv[1] == "--find":
-		killall(sys.argv[2])
+		find(sys.argv[2])
 		return
 	
 	if sys.argv[1] == "--killall":
@@ -163,7 +164,7 @@ def main():
 	# Copy dependencies with rsync if necessary
 	copy_dependencies = (len(sys.argv) > 2)
 	if copy_dependencies:
-		dependencies_rsync = Popen(["rsync", "-e", "ssh -o 'ProxyCommand ssh -q cs nc aalst.cs.kotnet.kuleuven.be 22' -l r0597343", "--update", "--delete", "--archive", sys.argv[2], "cs-aalst:/home/r0597343/anet/dependencies"])
+		dependencies_rsync = Popen(["rsync", "-e", "ssh -o 'ProxyCommand ssh -q cs nc aalst.cs.kotnet.kuleuven.be 22' -l %s"%student_id, "--update", "--delete", "--archive", sys.argv[2], "cs-aalst:/home/%s/anet/dependencies"%student_id])
 
 	# Read requests
 	with open(sys.argv[1], "r") as f:
@@ -311,16 +312,6 @@ def main():
 							
 							# All requests have already finished
 							break
-		
-		# Print all active connections
-		"""if printing:
-			sys.stderr.write("Active connections:\n")
-			sys.stderr.flush()
-			for fd in connections.keys():
-				connection = connections[fd]
-				if connection["request_ids"] != []:
-					sys.stderr.write("Connection processing requests: %s\n"%str(connection))
-					sys.stderr.flush()"""
 	
 	# Close all connections
 	for fd in connections.keys():
