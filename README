@@ -6,6 +6,12 @@ with some ssh/rsync/nc-commands from Maarten Baert.
 
 ========================================
 
+LICENSE
+
+This code can be edited, reused and redistributed as long as the people involved are credited accordingly.
+
+========================================
+
 INSTALLATION
 
 I did not design ANet to be installed by others and did most of the installation process almost a year before writing this. Therefore this information may be incomplete.
