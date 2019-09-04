@@ -6,6 +6,12 @@ with some ssh/rsync/nc-commands from Maarten Baert.
 
 ========================================
 
+WARNING
+
+ANet uses a set-up where passwords aren't needed, only an unencrypted private/public SSH-keypair. This keypair can be a newly generated one (so it can't compromise other systems that use the same keypair), however it is unencrypted and will need to be added to the authorized keys on the middle and end machines. Therefore, ANYONE WITH THE PRIVATE KEY CAN ACCESS THE MIDDLE AND END MACHINES WITHOUT PASSWORD. If you uncomfortable with this level of security, please don't use ANet, or better: write another system/fork ANet with improved authentication.
+
+========================================
+
 LICENSE
 
 This code can be edited, reused and redistributed as long as the people involved are credited accordingly.
