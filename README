@@ -8,7 +8,7 @@ with some ssh/rsync/nc-commands from Maarten Baert.
 
 WARNING
 
-ANet uses a set-up where passwords aren't needed, only an unencrypted private/public SSH-keypair. This keypair can be a newly generated one (so it can't compromise other systems that use the same keypair), however it is unencrypted and will need to be added to the authorized keys on the middle and end machines. Therefore, ANYONE WITH THE PRIVATE KEY CAN ACCESS THE MIDDLE AND END MACHINES WITHOUT PASSWORD. If you uncomfortable with this level of security, please don't use ANet, or better: write another system/fork ANet with improved authentication.
+ANet assumes that it can set up SSH connections to the middle machines without entering any passwords. I initially achieved this by using an unencrypted private/public SSH-keypair. This keypair can be a newly generated one (so it can't compromise other systems that use the same keypair), however it is unencrypted and will need to be added to the authorized keys on the middle and end machines. Therefore, with this set-up, ANYONE WITH THE PRIVATE KEY CAN ACCESS THE MIDDLE AND END MACHINES WITHOUT PASSWORD. For better security, I now recommend people to use encrypted key pairs and using ssh-agent to keep them unlocked during one session without further password prompts. While this should work theoretically, I haven't tested this yet.
 
 ========================================
 
@@ -29,7 +29,7 @@ Host cs
 HostName st.cs.kuleuven.be
 User r0597343
 4) Change the student_id constant at the top of both anet.py and anet_dependencies/anet_dispatcher.py to your student ID.
-5) Add all the end machines to known_hosts. I don't have a good script for this, maybe you can run "anet --killall ueieubfuiwb" to just connect to every machine without actually killing anything. You will then probably be prompted to accept the fingerprint of each machine, which means you still have to accept manually but you all the rest is automated.
+5) Add all the end machines to known_hosts. I don't have a good script for this, maybe you can run "anet --killall ueieubfuiwb" to just connect to every machine without actually killing anything. You will then probably be prompted to accept the fingerprint of each machine, which means you still have to accept all of them manually but all the rest is automated.
 6) Add the path /home/rXXXXXXX/anet/src/ to the end machine, the next step will copy files into this folder.
 7) Update the anet_dependencies on the end machines. The easiest way is to add the following script to your bin folder (I called it anet-update) and run it:
 #!/bin/sh
@@ -69,7 +69,7 @@ I wrote ANet with a few things in mind:
 - Fault tolerance:
 	- If a job crashes, it will be marked as unfinished and instead will be restarted (possibly somewhere else).
 	- If a job runs really slowly, when most other jobs are done other cores will start working on the same job. Whichever core finishes first will decide the output, after which all other processes handling the same job are killed.
-	- If a dispatcher crashes, it is restarted and its jobs are marked as unfinished. (I think).
+	- If a dispatcher crashes, it is restarted and its jobs are marked as unfinished (I think).
 	- If an SSH connection fails, it will be restarted with a bit of delay. There seems to be some DDOS protection or something so sending too many SSH requests in a short time gives bad results.
 - Both the master process and the dispatcher processes each run in a single thread.
 - Both the master process and the dispatcher processes don't use busy waits, thanks to the epoll interface. (However, in hindsight this point and the one above seems to inevitably lead to a theoretical deadlock, so possible improvements for more details).
@@ -79,8 +79,8 @@ I wrote ANet with a few things in mind:
 POSSIBLE IMPROVEMENTS
 
 In case anyone wants to improve the project, here are some ideas:
-- Made the installation process more user-friendly.
+- Make the installation process more user-friendly.
 - Create a built-in way to pause and resume batches. Currently the master process needs to be running continuously with a decent Internet connection (so no IP changes) while the batch is being processed.
 - Create a detached mode where there isn't a master process anymore. Instead, after submitting the batch the end machines process jobs by themselves. This could be difficult due to fault tolerance, however maybe using the file system as a central mediator for storing job information can help (since it already has some fault tolerance built-in, e.g. when your process crashes data on the file system persists).
 - For better fault tolerance: what if a dispatcher/SSH connection crashes while sending its output? The master process will end up in a part of the code where it expects a full response.
-- Avoid deadlock, which can now technically occur if the master process wants to write something to a dispatcher while it's input buffer is full and the dispatcher wants to write something to the master process while its input is full. Luckily this is very unlikely at the moment since the dispatcher input buffer is mostly filled with commands (which don't take much space) so these will normally be processed well in time.
+- Avoid deadlock, which can now technically occur if the master process wants to write something to a dispatcher while its input buffer is full and the dispatcher wants to write something to the master process while its input is full. Luckily this is very unlikely at the moment since the dispatcher input buffer is mostly filled with commands (which don't take much space) so these will normally be processed well in time.
